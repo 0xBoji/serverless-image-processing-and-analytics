@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"image/jpeg"
 	"io"
 	"log/slog"
 	"os"
@@ -17,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/rekognition"
 	rekognitionTypes "github.com/aws/aws-sdk-go-v2/service/rekognition/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/disintegration/imaging"
 )
 
 // ImageMetadata represents the metadata stored in DynamoDB for each processed image
@@ -26,6 +29,7 @@ type ImageMetadata struct {
 	ImageSize      int64       `dynamodbav:"image_size"`
 	ProcessedAt    string      `dynamodbav:"processed_at"`
 	DetectedLabels []LabelInfo `dynamodbav:"detected_labels"`
+	ThumbnailKey   string      `dynamodbav:"thumbnail_key"`
 }
 
 // LabelInfo represents a detected label from Rekognition
@@ -134,8 +138,27 @@ func (h *Handler) processS3Record(ctx context.Context, record events.S3EventReco
 		slog.Int("label_count", len(labels)),
 	)
 
-	// Step 3: Save metadata and labels to DynamoDB
-	err = h.saveMetadata(ctx, bucket, key, size, labels)
+	// Step 3: Generate and Upload Thumbnail
+	thumbnailKey, err := h.generateAndUploadThumbnail(ctx, bucket, key, imageBytes)
+	if err != nil {
+		h.logger.Error("failed to generate thumbnail",
+			slog.String("bucket", bucket),
+			slog.String("key", key),
+			slog.String("error", err.Error()),
+		)
+		// We rely on the thumbnail, so we should probably fail or at least log error.
+		// For now let's just log and continue with empty thumbnail key if it fails?
+		// User requested thumbnail generation, so it's better to verify it works.
+		// Let's propagate error to retry.
+		return fmt.Errorf("failed to generate thumbnail: %w", err)
+	}
+
+	h.logger.Info("successfully generated thumbnail",
+		slog.String("thumbnail_key", thumbnailKey),
+	)
+
+	// Step 4: Save metadata and labels to DynamoDB
+	err = h.saveMetadata(ctx, bucket, key, size, labels, thumbnailKey)
 	if err != nil {
 		h.logger.Error("failed to save metadata to DynamoDB",
 			slog.String("bucket", bucket),
@@ -208,13 +231,14 @@ func (h *Handler) detectLabels(ctx context.Context, imageBytes []byte) ([]LabelI
 }
 
 // saveMetadata saves the image metadata and detected labels to DynamoDB
-func (h *Handler) saveMetadata(ctx context.Context, bucket, key string, size int64, labels []LabelInfo) error {
+func (h *Handler) saveMetadata(ctx context.Context, bucket, key string, size int64, labels []LabelInfo, thumbnailKey string) error {
 	metadata := ImageMetadata{
 		ImageKey:       key,
 		BucketName:     bucket,
 		ImageSize:      size,
 		ProcessedAt:    time.Now().UTC().Format(time.RFC3339),
 		DetectedLabels: labels,
+		ThumbnailKey:   thumbnailKey,
 	}
 
 	item, err := attributevalue.MarshalMap(metadata)
@@ -233,6 +257,41 @@ func (h *Handler) saveMetadata(ctx context.Context, bucket, key string, size int
 	}
 
 	return nil
+}
+
+// generateAndUploadThumbnail generates a thumbnail and uploads it to S3
+func (h *Handler) generateAndUploadThumbnail(ctx context.Context, bucket, key string, imageBytes []byte) (string, error) {
+	// Decode the image
+	img, err := imaging.Decode(bytes.NewReader(imageBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to decode image: %w", err)
+	}
+
+	// Resize the image to width 300px preserving aspect ratio
+	thumbnail := imaging.Resize(img, 300, 0, imaging.Lanczos)
+
+	// Encode as JPEG
+	var buf bytes.Buffer
+	err = jpeg.Encode(&buf, thumbnail, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode thumbnail: %w", err)
+	}
+
+	// Upload to S3
+	thumbnailKey := "thumbnails/" + key
+	input := &s3.PutObjectInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(thumbnailKey),
+		Body:        bytes.NewReader(buf.Bytes()),
+		ContentType: aws.String("image/jpeg"),
+	}
+
+	_, err = h.s3Client.PutObject(ctx, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload thumbnail to S3: %w", err)
+	}
+
+	return thumbnailKey, nil
 }
 
 // Global handler instance (initialized once during cold start)

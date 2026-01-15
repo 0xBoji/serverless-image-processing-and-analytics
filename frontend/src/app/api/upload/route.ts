@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSignedUrl } from '@aws-sdk/cloudfront-signer';
+import { putMetric } from '@/lib/cloudwatch';
 
 // CloudFront configuration
 const CLOUDFRONT_DOMAIN = process.env.CLOUDFRONT_DOMAIN!;
@@ -9,9 +10,9 @@ if (!CLOUDFRONT_DOMAIN || !CLOUDFRONT_KEY_PAIR_ID) {
     throw new Error('Missing CloudFront configuration: CLOUDFRONT_DOMAIN or CLOUDFRONT_KEY_PAIR_ID not set');
 }
 
-// Rate limiting - max 10 uploads per IP per minute
+// Rate limiting - max 5 uploads per IP per minute
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
-const MAX_UPLOADS = 10;
+const MAX_UPLOADS = 5;
 const WINDOW_MS = 60000;
 
 // Allowed origins for CORS protection
@@ -50,14 +51,28 @@ export async function POST(request: NextRequest) {
         const record = rateLimit.get(ip);
 
         if (record && now < record.resetAt) {
+            const remaining = Math.max(0, MAX_UPLOADS - record.count);
+
             if (record.count >= MAX_UPLOADS) {
                 console.warn('Rate limit exceeded for IP:', ip);
+                // Metric: Rate Limit Exceeded
+                await putMetric('RateLimitExceeded', 1, 'Count');
+
                 return NextResponse.json(
                     { error: 'Too many upload requests. Please try again later.' },
-                    { status: 429 }
+                    {
+                        status: 429,
+                        headers: {
+                            'X-RateLimit-Limit': MAX_UPLOADS.toString(),
+                            'X-RateLimit-Remaining': '0',
+                            'X-RateLimit-Reset': record.resetAt.toString()
+                        }
+                    }
                 );
             }
             record.count++;
+
+            // Add rate limit headers to successful response context (stored for later)
         } else {
             rateLimit.set(ip, { count: 1, resetAt: now + WINDOW_MS });
         }
@@ -81,11 +96,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Validate content type - only allow images
-        const allowedContentTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        // Validate content type - only allow JPEG and PNG images
+        const allowedContentTypes = ['image/jpeg', 'image/png'];
         if (!allowedContentTypes.includes(contentType)) {
             return NextResponse.json(
-                { error: 'Only image files are allowed (jpeg, png, gif, webp)' },
+                { error: 'Only JPEG and PNG images are allowed' },
                 { status: 400 }
             );
         }
@@ -106,6 +121,9 @@ export async function POST(request: NextRequest) {
             privateKey: getPrivateKey(),
         });
 
+        // Metric: Upload Success
+        await putMetric('UploadSuccess', 1, 'Count');
+
         return NextResponse.json({
             uploadUrl,
             key,
@@ -114,6 +132,10 @@ export async function POST(request: NextRequest) {
         });
     } catch (error) {
         console.error('Failed to generate signed URL:', error);
+
+        // Metric: Upload Failure
+        await putMetric('UploadFailure', 1, 'Count');
+
         return NextResponse.json(
             { error: 'Failed to generate upload URL' },
             { status: 500 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { putMetric } from '@/lib/cloudwatch';
 
 const dynamoClient = new DynamoDBClient({
     region: process.env.AWS_REGION || 'ap-southeast-2',
@@ -14,6 +15,7 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
 export async function GET(request: NextRequest) {
+    const startTime = Date.now();
     try {
         const searchParams = request.nextUrl.searchParams;
         const key = searchParams.get('key');
@@ -47,12 +49,21 @@ export async function GET(request: NextRequest) {
             return dateB - dateA;
         });
 
+        // Metric: Images Fetch Latency & Count
+        const latency = Date.now() - startTime;
+        await putMetric('ImagesFetchLatency', latency, 'Milliseconds');
+        await putMetric('ImagesFetchSuccess', 1, 'Count');
+
         return NextResponse.json({
             items,
             count: items.length,
         });
     } catch (error: any) {
         console.error('Failed to fetch images:', error);
+
+        // Metric: Images Fetch Failure
+        await putMetric('ImagesFetchFailure', 1, 'Count');
+
         return NextResponse.json(
             {
                 error: 'Failed to fetch images',

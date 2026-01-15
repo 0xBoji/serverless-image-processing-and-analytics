@@ -14,6 +14,7 @@ export interface ProcessedImage {
     image_size: number;
     processed_at: string;
     detected_labels: ImageLabel[];
+    thumbnail_key?: string;
 }
 
 interface ImageCardProps {
@@ -46,7 +47,9 @@ export function ImageCard({ image }: ImageCardProps) {
     useEffect(() => {
         const fetchImageUrl = async () => {
             try {
-                const response = await fetch(`/api/image-url?key=${encodeURIComponent(image.image_key)}`);
+                // Prefer thumbnail if available, otherwise use original image
+                const keyToFetch = image.thumbnail_key || image.image_key;
+                const response = await fetch(`/api/image-url?key=${encodeURIComponent(keyToFetch)}`);
                 if (response.ok) {
                     const data = await response.json();
                     setImageUrl(data.url);
@@ -61,7 +64,7 @@ export function ImageCard({ image }: ImageCardProps) {
         };
 
         fetchImageUrl();
-    }, [image.image_key]);
+    }, [image.image_key, image.thumbnail_key]);
 
     return (
         <div className="glass-card group overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer">
