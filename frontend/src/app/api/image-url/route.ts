@@ -6,7 +6,7 @@ const s3Client = new S3Client({
     region: process.env.AWS_REGION || 'ap-southeast-2',
 });
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME || 'image-processor-source-975050162743';
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 export async function GET(request: NextRequest) {
     try {

@@ -1,0 +1,6 @@
+# Keys directory
+keys/
+
+# AWS config files
+cloudfront-config.json
+s3-bucket-policy.json

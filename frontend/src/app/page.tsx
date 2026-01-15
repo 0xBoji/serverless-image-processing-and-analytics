@@ -53,7 +53,7 @@ export default function Home() {
       <footer className="border-t border-[var(--color-border)] py-8">
         <div className="mx-auto max-w-7xl px-4 text-center text-sm text-[var(--color-text-muted)]">
           <p>
-            Built with Next.js • AWS Lambda • S3 • Rekognition • DynamoDB
+            Built with Next.js • AWS Lambda • S3 • CloudFront • Rekognition • DynamoDB
           </p>
         </div>
       </footer>
