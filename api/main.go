@@ -69,8 +69,8 @@ func NewHandler(ctx context.Context) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	h.logger.Info("received request", slog.String("path", req.Path), slog.String("method", req.HTTPMethod), slog.String("raw_path", req.RequestContext.HTTP.Path))
+func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+	h.logger.Info("received request", slog.String("path", req.RawPath), slog.String("method", req.RequestContext.HTTP.Method))
 
 	// Content-Type Header
 	headers := map[string]string{
@@ -80,20 +80,22 @@ func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayProxyR
 	// CORS is handled by API Gateway, so we don't need to handle OPTIONS or add Access-Control headers here.
 
 	// Strip /api prefix if present (for CloudFront routing)
-	path := req.Path
+	path := req.RawPath
 	if len(path) > 4 && path[:4] == "/api" {
 		path = path[4:]
 	}
 
+	method := req.RequestContext.HTTP.Method
+
 	switch {
-	case path == "/images" && req.HTTPMethod == "GET":
+	case path == "/images" && method == "GET":
 		return h.handleGetImages(ctx, headers)
-	case path == "/upload" && req.HTTPMethod == "POST":
+	case path == "/upload" && method == "POST":
 		return h.handleUpload(ctx, req, headers)
-	case path == "/image-url" && req.HTTPMethod == "GET":
+	case path == "/image-url" && method == "GET":
 		return h.handleGetImageURL(ctx, req, headers)
 	default:
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 404,
 			Headers:    headers,
 			Body:       `{"error":"Not Found"}`,
@@ -101,7 +103,7 @@ func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayProxyR
 	}
 }
 
-func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string) (events.APIGatewayV2HTTPResponse, error) {
 	input := &dynamodb.ScanInput{
 		TableName: aws.String(h.tableName),
 	}
@@ -109,7 +111,7 @@ func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string
 	result, err := h.dynamoDBClient.Scan(ctx, input)
 	if err != nil {
 		h.logger.Error("failed to scan dynamodb", slog.String("error", err.Error()))
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
 			Headers:    headers,
 			Body:       `{"error":"Failed to fetch images"}`,
@@ -120,7 +122,7 @@ func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string
 	err = attributevalue.UnmarshalListOfMaps(result.Items, &items)
 	if err != nil {
 		h.logger.Error("failed to unmarshal items", slog.String("error", err.Error()))
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
 			Headers:    headers,
 			Body:       `{"error":"Failed to process images"}`,
@@ -132,17 +134,17 @@ func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string
 		"count": result.Count,
 	})
 
-	return events.APIGatewayProxyResponse{
+	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 200,
 		Headers:    headers,
 		Body:       string(responseBody),
 	}, nil
 }
 
-func (h *Handler) handleUpload(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func (h *Handler) handleUpload(ctx context.Context, req events.APIGatewayV2HTTPRequest, headers map[string]string) (events.APIGatewayV2HTTPResponse, error) {
 	var uploadReq UploadRequest
 	if err := json.Unmarshal([]byte(req.Body), &uploadReq); err != nil {
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
 			Headers:    headers,
 			Body:       `{"error":"Invalid request body"}`,
@@ -151,7 +153,7 @@ func (h *Handler) handleUpload(ctx context.Context, req events.APIGatewayProxyRe
 
 	// Validate content type
 	if uploadReq.ContentType != "image/jpeg" && uploadReq.ContentType != "image/png" {
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
 			Headers:    headers,
 			Body:       `{"error":"Only JPEG and PNG images are allowed"}`,
@@ -171,7 +173,7 @@ func (h *Handler) handleUpload(ctx context.Context, req events.APIGatewayProxyRe
 
 	if err != nil {
 		h.logger.Error("failed to presign url", slog.String("error", err.Error()))
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
 			Headers:    headers,
 			Body:       `{"error":"Failed to generate upload URL"}`,
@@ -184,17 +186,17 @@ func (h *Handler) handleUpload(ctx context.Context, req events.APIGatewayProxyRe
 	}
 	responseBody, _ := json.Marshal(resp)
 
-	return events.APIGatewayProxyResponse{
+	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 200,
 		Headers:    headers,
 		Body:       string(responseBody),
 	}, nil
 }
 
-func (h *Handler) handleGetImageURL(ctx context.Context, req events.APIGatewayProxyRequest, headers map[string]string) (events.APIGatewayProxyResponse, error) {
+func (h *Handler) handleGetImageURL(ctx context.Context, req events.APIGatewayV2HTTPRequest, headers map[string]string) (events.APIGatewayV2HTTPResponse, error) {
 	key := req.QueryStringParameters["key"]
 	if key == "" {
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 400,
 			Headers:    headers,
 			Body:       `{"error":"Missing key parameter"}`,
@@ -209,7 +211,7 @@ func (h *Handler) handleGetImageURL(ctx context.Context, req events.APIGatewayPr
 
 	if err != nil {
 		h.logger.Error("failed to generate signed url", slog.String("error", err.Error()))
-		return events.APIGatewayProxyResponse{
+		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 500,
 			Headers:    headers,
 			Body:       `{"error":"Failed to generate image URL"}`,
@@ -221,7 +223,7 @@ func (h *Handler) handleGetImageURL(ctx context.Context, req events.APIGatewayPr
 	}
 	responseBody, _ := json.Marshal(resp)
 
-	return events.APIGatewayProxyResponse{
+	return events.APIGatewayV2HTTPResponse{
 		StatusCode: 200,
 		Headers:    headers,
 		Body:       string(responseBody),
