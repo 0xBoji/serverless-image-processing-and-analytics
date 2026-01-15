@@ -169,10 +169,10 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
   api_id           = aws_apigatewayv2_api.http_api.id
   integration_type = "AWS_PROXY"
 
-  connection_type      = "INTERNET"
-  description          = "Lambda Integration"
-  integration_method   = "POST"
-  integration_uri      = aws_lambda_function.image_api.invoke_arn
+  connection_type        = "INTERNET"
+  description            = "Lambda Integration"
+  integration_method     = "POST"
+  integration_uri        = aws_lambda_function.image_api.invoke_arn
   payload_format_version = "2.0"
 }
 
