@@ -195,7 +195,7 @@ resource "aws_lambda_permission" "api_gw" {
 resource "aws_lambda_permission" "allow_bucket" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.image_processor.arn
+  function_name = aws_lambda_function.image_processor.function_name
   principal     = "s3.amazonaws.com"
   source_arn    = aws_s3_bucket.image_bucket.arn
 }
