@@ -70,7 +70,7 @@ func NewHandler(ctx context.Context) (*Handler, error) {
 }
 
 func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	h.logger.Info("received request", slog.String("path", req.Path), slog.String("method", req.HTTPMethod))
+	h.logger.Info("received request", slog.String("path", req.Path), slog.String("method", req.HTTPMethod), slog.String("raw_path", req.RequestContext.HTTP.Path))
 
 	// Content-Type Header
 	headers := map[string]string{
