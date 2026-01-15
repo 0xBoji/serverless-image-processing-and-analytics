@@ -69,38 +69,62 @@ func NewHandler(ctx context.Context) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	h.logger.Info("received request", slog.String("path", req.RawPath), slog.String("method", req.RequestContext.HTTP.Method))
+func (h *Handler) HandleRequest(ctx context.Context, req map[string]interface{}) (events.APIGatewayV2HTTPResponse, error) {
+	reqJSON, _ := json.Marshal(req)
+	h.logger.Info("received raw request", slog.String("json", string(reqJSON)))
 
-	// Content-Type Header
-	headers := map[string]string{
-		"Content-Type": "application/json",
+	// Attempt to unmarshal into V2
+	var reqV2 events.APIGatewayV2HTTPRequest
+	if err := json.Unmarshal(reqJSON, &reqV2); err == nil && reqV2.RawPath != "" {
+		return h.handleV2(ctx, reqV2)
 	}
 
-	// CORS is handled by API Gateway, so we don't need to handle OPTIONS or add Access-Control headers here.
+	// Attempt to unmarshal into V1
+	var reqV1 events.APIGatewayProxyRequest
+	if err := json.Unmarshal(reqJSON, &reqV1); err == nil && reqV1.Path != "" {
+		return h.handleV1(ctx, reqV1)
+	}
 
-	// Strip /api prefix if present (for CloudFront routing)
+	return events.APIGatewayV2HTTPResponse{
+		StatusCode: 500,
+		Body:       fmt.Sprintf("Could not parse event: %s", string(reqJSON)),
+	}, nil
+}
+
+func (h *Handler) handleV2(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+	// ... existing V2 logic ...
+	h.logger.Info("handling as V2", slog.String("path", req.RawPath))
 	path := req.RawPath
 	if len(path) > 4 && path[:4] == "/api" {
 		path = path[4:]
 	}
-
 	method := req.RequestContext.HTTP.Method
 
 	switch {
 	case path == "/images" && method == "GET":
-		return h.handleGetImages(ctx, headers)
+		return h.handleGetImages(ctx, headersV2())
 	case path == "/upload" && method == "POST":
-		return h.handleUpload(ctx, req, headers)
+		return h.handleUpload(ctx, req, headersV2())
 	case path == "/image-url" && method == "GET":
-		return h.handleGetImageURL(ctx, req, headers)
+		return h.handleGetImageURL(ctx, req, headersV2())
 	default:
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 404,
-			Headers:    headers,
+			Headers:    headersV2(),
 			Body:       `{"error":"Not Found"}`,
 		}, nil
 	}
+}
+
+func (h *Handler) handleV1(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
+	// Adapter logic for V1 -> V2 response
+	h.logger.Info("handling as V1", slog.String("path", req.Path))
+	// ... logic ...
+	return events.APIGatewayV2HTTPResponse{StatusCode: 501, Body: "V1 not supported yet"}, nil
+}
+
+func headersV2() map[string]string {
+	return map[string]string{"Content-Type": "application/json"}
 }
 
 func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string) (events.APIGatewayV2HTTPResponse, error) {
