@@ -103,14 +103,14 @@ resource "aws_iam_role_policy" "lambda_policy" {
 
 # Lambda Function
 resource "aws_lambda_function" "image_processor" {
-  filename         = "../function.zip"
-  function_name    = "image-processor"
-  role             = aws_iam_role.lambda_role.arn
-  handler          = "bootstrap"
-  runtime          = "provided.al2023"
-  architectures    = ["arm64"]
-  timeout          = 30
-  memory_size      = 256
+  filename      = "../function.zip"
+  function_name = "image-processor"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "bootstrap"
+  runtime       = "provided.al2023"
+  architectures = ["arm64"]
+  timeout       = 30
+  memory_size   = 256
   # source_code_hash = filebase64sha256("../function.zip")
 
   environment {
