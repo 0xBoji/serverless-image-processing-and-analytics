@@ -18,7 +18,8 @@ export function ImageGallery({ refreshTrigger = 0 }: ImageGalleryProps) {
             setLoading(true);
             setError(null);
 
-            const response = await fetch('/api/images');
+            const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+            const response = await fetch(`${API_BASE}/images`);
             if (!response.ok) {
                 throw new Error('Failed to fetch images');
             }

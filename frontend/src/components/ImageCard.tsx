@@ -49,7 +49,8 @@ export function ImageCard({ image }: ImageCardProps) {
             try {
                 // Prefer thumbnail if available, otherwise use original image
                 const keyToFetch = image.thumbnail_key || image.image_key;
-                const response = await fetch(`/api/image-url?key=${encodeURIComponent(keyToFetch)}`);
+                const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+                const response = await fetch(`${API_BASE}/image-url?key=${encodeURIComponent(keyToFetch)}`);
                 if (response.ok) {
                     const data = await response.json();
                     setImageUrl(data.url);

@@ -21,7 +21,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             setStatusMessage('Getting upload URL...');
 
             // Get presigned URL from our API
-            const response = await fetch('/api/upload', {
+            const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+            const response = await fetch(`${API_BASE}/upload`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -86,7 +87,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             await new Promise(resolve => setTimeout(resolve, 2000));
 
             try {
-                const response = await fetch(`/api/images?key=${encodeURIComponent(key)}`);
+                const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
+                const response = await fetch(`${API_BASE}/images?key=${encodeURIComponent(key)}`);
                 if (response.ok) {
                     const data = await response.json();
                     if (data.item) {

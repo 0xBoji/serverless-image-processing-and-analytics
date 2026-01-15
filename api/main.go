@@ -88,12 +88,18 @@ func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayProxyR
 		}, nil
 	}
 
+	// Strip /api prefix if present (for CloudFront routing)
+	path := req.Path
+	if len(path) > 4 && path[:4] == "/api" {
+		path = path[4:]
+	}
+
 	switch {
-	case req.Path == "/images" && req.HTTPMethod == "GET":
+	case path == "/images" && req.HTTPMethod == "GET":
 		return h.handleGetImages(ctx, headers)
-	case req.Path == "/upload" && req.HTTPMethod == "POST":
+	case path == "/upload" && req.HTTPMethod == "POST":
 		return h.handleUpload(ctx, req, headers)
-	case req.Path == "/image-url" && req.HTTPMethod == "GET":
+	case path == "/image-url" && req.HTTPMethod == "GET":
 		return h.handleGetImageURL(ctx, req, headers)
 	default:
 		return events.APIGatewayProxyResponse{
