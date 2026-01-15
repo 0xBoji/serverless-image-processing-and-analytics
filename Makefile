@@ -4,15 +4,19 @@
 build:
 	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap main.go
 	zip function.zip bootstrap
+	GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o api/bootstrap api/main.go
+	cd api && zip ../api-function.zip bootstrap
 
 # Build for x86_64 architecture (if needed)
 build-amd64:
 	GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o bootstrap main.go
 	zip function.zip bootstrap
+	GOOS=linux GOARCH=amd64 go build -tags lambda.norpc -o api/bootstrap api/main.go
+	cd api && zip ../api-function.zip bootstrap
 
 # Clean build artifacts
 clean:
-	rm -f bootstrap function.zip
+	rm -f bootstrap function.zip api/bootstrap api-function.zip
 
 # Run tests
 test:

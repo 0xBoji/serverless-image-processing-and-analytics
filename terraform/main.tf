@@ -40,7 +40,7 @@ resource "aws_dynamodb_table" "image_labels" {
   }
 }
 
-# IAM Role for Lambda
+# IAM Role for Lambda (Shared Role)
 resource "aws_iam_role" "lambda_role" {
   name = "image_processor_role"
 
@@ -93,7 +93,9 @@ resource "aws_iam_role_policy" "lambda_policy" {
       {
         Effect = "Allow"
         Action = [
-          "dynamodb:PutItem"
+          "dynamodb:PutItem",
+          "dynamodb:Scan",
+          "dynamodb:GetItem"
         ]
         Resource = aws_dynamodb_table.image_labels.arn
       }
@@ -101,7 +103,7 @@ resource "aws_iam_role_policy" "lambda_policy" {
   })
 }
 
-# Lambda Function
+# 1. Image Processor Lambda (Trigged by S3)
 resource "aws_lambda_function" "image_processor" {
   filename      = "../function.zip"
   function_name = "image-processor"
@@ -120,7 +122,76 @@ resource "aws_lambda_function" "image_processor" {
   }
 }
 
-# S3 Trigger for Lambda
+# 2. API Lambda (Triggered by API Gateway)
+resource "aws_lambda_function" "image_api" {
+  filename      = "../api-function.zip"
+  function_name = "image-api"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "bootstrap"
+  runtime       = "provided.al2023"
+  architectures = ["arm64"]
+  timeout       = 10
+  memory_size   = 128
+  # source_code_hash = filebase64sha256("../api-function.zip")
+
+  environment {
+    variables = {
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.image_labels.name
+      S3_BUCKET_NAME      = aws_s3_bucket.image_bucket.bucket
+    }
+  }
+}
+
+# API Gateway (HTTP API)
+resource "aws_apigatewayv2_api" "http_api" {
+  name          = "image-processing-api"
+  protocol_type = "HTTP"
+  cors_configuration {
+    allow_origins = ["*"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
+    allow_headers = ["content-type"]
+    max_age       = 300
+  }
+}
+
+resource "aws_apigatewayv2_stage" "default" {
+  api_id      = aws_apigatewayv2_api.http_api.id
+  name        = "$default"
+  auto_deploy = true
+
+  default_route_settings {
+    throttling_burst_limit = 20
+    throttling_rate_limit  = 10
+  }
+}
+
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  api_id           = aws_apigatewayv2_api.http_api.id
+  integration_type = "AWS_PROXY"
+
+  connection_type      = "INTERNET"
+  description          = "Lambda Integration"
+  integration_method   = "POST"
+  integration_uri      = aws_lambda_function.image_api.invoke_arn
+  payload_format_version = "2.0"
+}
+
+resource "aws_apigatewayv2_route" "default_route" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+}
+
+# Permission for API Gateway to Invoke Lambda
+resource "aws_lambda_permission" "api_gw" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.image_api.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+}
+
+# S3 Trigger for Processor Lambda
 resource "aws_lambda_permission" "allow_bucket" {
   statement_id  = "AllowExecutionFromS3Bucket"
   action        = "lambda:InvokeFunction"
@@ -135,7 +206,6 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   lambda_function {
     lambda_function_arn = aws_lambda_function.image_processor.arn
     events              = ["s3:ObjectCreated:*"]
-    # filter_prefix       = "images/" # Optional: if you only want to process strictly images
   }
 
   depends_on = [aws_lambda_permission.allow_bucket]
@@ -159,7 +229,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   enabled             = true
   is_ipv6_enabled     = true
-  default_root_object = "index.html" # Doesn't matter much for API usage
+  default_root_object = "index.html"
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
@@ -209,9 +279,7 @@ resource "aws_s3_bucket_policy" "allow_cloudfront" {
             "AWS:SourceArn" = aws_cloudfront_distribution.s3_distribution.arn
           }
         }
-      },
-      # Keep existing PutObject permissions (e.g., usually handled by signed URLs or explicit IAM users)
-      # This block is just for CloudFront READ access.
+      }
     ]
   })
 }
