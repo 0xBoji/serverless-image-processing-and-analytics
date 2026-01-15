@@ -1,165 +1,77 @@
-# AWS Lambda Image Processor
+# Serverless Image Processing & Analytics
 
-A Go-based AWS Lambda function that processes images uploaded to S3, detects objects using AWS Rekognition, and stores the results in DynamoDB.
+A Full Stack Serverless application combining **Next.js**, **AWS Lambda**, **Rekognition**, and **DynamoDB** to process, analyze, and visualize images.
 
 ## Architecture
 
-```
-S3 (Image Upload) → Lambda → Rekognition (DetectLabels) → DynamoDB
+```mermaid
+graph LR
+    User[User] -->|Uploads Image| CF[CloudFront/S3]
+    CF -->|Triggers| Lambda[Go Lambda]
+    Lambda -->|1. Generate| Thumb[Thumbnail S3]
+    Lambda -->|2. Analyze| Rek[AWS Rekognition]
+    Lambda -->|3. Store| DDB[DynamoDB]
+    Lambda -->|4. Metrics| CW[CloudWatch]
+    Frontend[Next.js App] -->|Reads| DDB
+    Frontend -->|Displays| CF
 ```
 
 ## Features
 
-- **S3 Trigger**: Automatically triggered by S3 PutObject events
-- **Image Analysis**: Uses AWS Rekognition to detect labels/objects in images
-- **Metadata Storage**: Saves image metadata and detected labels to DynamoDB
-- **Structured Logging**: Uses Go's `slog` package for CloudWatch-friendly JSON logs
-
-## Prerequisites
-
-- Go 1.21+
-- AWS CLI configured with appropriate credentials
-- AWS resources:
-  - S3 bucket for source images
-  - DynamoDB table with partition key `image_key` (String)
-  - IAM role with permissions for S3, Rekognition, and DynamoDB
+- **Frontend**: Next.js 14 (App Router) with beautiful UI & Glassmorphism design.
+- **Image Processing**:
+  - Auto-generate **300px thumbnails** for fast loading.
+  - Detect objects/labels algorithmically using **AWS Rekognition**.
+- **Security**:
+  - **Rate Limiting**: 5 uploads/minute per IP.
+  - **Validation**: Strict strict JPG/PNG MIME type checks.
+  - **Access Control**: Least privilege IAM policies.
+- **Observability**: Custom CloudWatch metrics for latency, upload success/failure, and rate limits.
+- **Infrastructure as Code**: Fully managed via **Terraform**.
+- **CI/CD**: Automated testing & deployment with **GitHub Actions**.
 
 ## Project Structure
 
-```
+```bash
 .
-├── main.go          # Lambda handler and AWS service integrations
-├── go.mod           # Go module dependencies
-├── Makefile         # Build and deployment commands
-└── README.md        # This file
+├── frontend/        # Next.js Application
+├── terraform/       # Infrastructure as Code (AWS)
+├── .github/         # CI/CD Workflows
+├── main.go          # Lambda Function (Go)
+└── Makefile         # Build commands
+```
+
+## Getting Started
+
+### Prerequisites
+- Go 1.21+
+- Node.js 18+
+- AWS CLI & Terraform
+
+### Deployment
+
+**Option 1: Automated (Recommended)**
+Push to `main` branch. GitHub Actions will:
+1. Test & Build Go Lambda.
+2. Terraform Apply infrastructure changes.
+
+**Option 2: Manual**
+```bash
+# 1. Backend & Infra
+make deploy
+
+# 2. Frontend
+cd frontend && vercel --prod
 ```
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DYNAMODB_TABLE_NAME` | Name of the DynamoDB table to store results | `image-labels` |
-
-## Building
-
-```bash
-# Build for ARM64 (recommended for Graviton2)
-make build
-
-# Build for x86_64
-make build-amd64
-```
-
-## Deployment
-
-1. **Create the DynamoDB table**:
-```bash
-aws dynamodb create-table \
-  --table-name image-labels \
-  --attribute-definitions AttributeName=image_key,AttributeType=S \
-  --key-schema AttributeName=image_key,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST
-```
-
-2. **Create the Lambda function**:
-```bash
-LAMBDA_ROLE_ARN=arn:aws:iam::ACCOUNT_ID:role/YOUR_ROLE make create-function
-```
-
-3. **Configure S3 trigger**:
-```bash
-aws s3api put-bucket-notification-configuration \
-  --bucket YOUR_BUCKET_NAME \
-  --notification-configuration '{
-    "LambdaFunctionConfigurations": [{
-      "LambdaFunctionArn": "arn:aws:lambda:REGION:ACCOUNT_ID:function:image-processor",
-      "Events": ["s3:ObjectCreated:Put"],
-      "Filter": {
-        "Key": {
-          "FilterRules": [
-            {"Name": "suffix", "Value": ".jpg"},
-            {"Name": "suffix", "Value": ".png"}
-          ]
-        }
-      }
-    }]
-  }'
-```
-
-4. **Update the function code**:
-```bash
-make build
-make deploy
-```
-
-## IAM Policy
-
-The Lambda execution role needs the following permissions:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:GetObject"
-      ],
-      "Resource": "arn:aws:s3:::YOUR_BUCKET_NAME/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "rekognition:DetectLabels"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:PutItem"
-      ],
-      "Resource": "arn:aws:dynamodb:*:*:table/image-labels"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "arn:aws:logs:*:*:*"
-    }
-  ]
-}
-```
-
-## DynamoDB Schema
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `image_key` (PK) | String | S3 object key |
-| `bucket_name` | String | Source S3 bucket |
-| `image_size` | Number | Image size in bytes |
-| `processed_at` | String | ISO 8601 timestamp |
-| `detected_labels` | List | Array of detected labels with name and confidence |
-
-## Example Output
-
-```json
-{
-  "image_key": "photos/sunset.jpg",
-  "bucket_name": "my-image-bucket",
-  "image_size": 2048576,
-  "processed_at": "2026-01-15T13:26:29Z",
-  "detected_labels": [
-    {"name": "Sunset", "confidence": 98.5},
-    {"name": "Sky", "confidence": 97.2},
-    {"name": "Nature", "confidence": 95.8}
-  ]
-}
-```
+| Component | Variable | Description |
+|-----------|----------|-------------|
+| **Lambda** | `DYNAMODB_TABLE_NAME` | Table to store metadata |
+| **Frontend** | `AWS_REGION` | AWS Region (ap-southeast-2) |
+| | `S3_BUCKET_NAME` | Source bucket name |
+| | `CLOUDFRONT_DOMAIN` | CDN Domain for assets |
 
 ## License
-
 MIT
