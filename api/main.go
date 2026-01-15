@@ -72,21 +72,12 @@ func NewHandler(ctx context.Context) (*Handler, error) {
 func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	h.logger.Info("received request", slog.String("path", req.Path), slog.String("method", req.HTTPMethod))
 
-	// CORS Headers
+	// Content-Type Header
 	headers := map[string]string{
-		"Access-Control-Allow-Origin":  "*", // Restrict in production
-		"Access-Control-Allow-Headers": "Content-Type",
-		"Access-Control-Allow-Methods": "OPTIONS, POST, GET",
-		"Content-Type":                 "application/json",
+		"Content-Type": "application/json",
 	}
 
-	if req.HTTPMethod == "OPTIONS" {
-		return events.APIGatewayProxyResponse{
-			StatusCode: 200,
-			Headers:    headers,
-			Body:       "",
-		}, nil
-	}
+	// CORS is handled by API Gateway, so we don't need to handle OPTIONS or add Access-Control headers here.
 
 	// Strip /api prefix if present (for CloudFront routing)
 	path := req.Path
