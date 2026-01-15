@@ -4,3 +4,7 @@ keys/
 # AWS config files
 cloudfront-config.json
 s3-bucket-policy.json
+
+# Terraform
+terraform/.terraform/
+terraform/*.backup
