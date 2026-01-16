@@ -8,16 +8,16 @@ The system follows a strict **Cloud-Native** flow with **Defense in Depth** secu
 
 ```mermaid
 graph LR
-    User[User] -->|HTTPS| CF[CloudFront (CDN)]
+    User[User] -->|HTTPS| CF["CloudFront (CDN)"]
     
     subgraph "Edge Network"
-        CF -->|/api/*| APIGW[API Gateway (HTTP API)]
-        CF -->|/images/*| S3Origin[S3 Bucket]
+        CF -->|/api/*| APIGW["API Gateway (HTTP API)"]
+        CF -->|/images/*| S3Origin["S3 Bucket"]
     end
 
     subgraph "Compute & Logic"
-        APIGW -->|Proxy| LambdaAPI[Lambda API (Go)]
-        S3Origin -->|Event Trigger| LambdaProc[Lambda Processor (Go)]
+        APIGW -->|Proxy| LambdaAPI["Lambda API (Go)"]
+        S3Origin -->|Event Trigger| LambdaProc["Lambda Processor (Go)"]
     end
 
     subgraph "Data & AI"
