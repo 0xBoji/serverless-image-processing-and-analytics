@@ -145,19 +145,29 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                 <input {...getInputProps()} />
 
                 {preview ? (
-                    <div className="relative">
+                    <div className="relative overflow-hidden rounded-lg">
                         <img
                             src={preview}
                             alt="Preview"
-                            className="mx-auto max-h-64 rounded-lg object-contain"
+                            className="mx-auto max-h-64 object-contain relative z-10"
                         />
+
+                        {/* Scanning Effect */}
+                        {status === 'analyzing' && (
+                            <>
+                                <div className="scan-line" />
+                                <div className="scan-overlay" />
+                                <div className="absolute inset-0 bg-blue-500/10 z-0 animate-pulse" />
+                            </>
+                        )}
+
                         {status === 'idle' && (
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     clearPreview();
                                 }}
-                                className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer"
+                                className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors cursor-pointer z-20"
                             >
                                 <X className="h-4 w-4" />
                             </button>
