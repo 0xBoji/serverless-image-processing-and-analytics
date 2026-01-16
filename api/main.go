@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sort"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -69,65 +71,48 @@ func NewHandler(ctx context.Context) (*Handler, error) {
 	}, nil
 }
 
-func (h *Handler) HandleRequest(ctx context.Context, req map[string]interface{}) (events.APIGatewayV2HTTPResponse, error) {
-	reqJSON, _ := json.Marshal(req)
-	h.logger.Info("received raw request", slog.String("json", string(reqJSON)))
+func (h *Handler) HandleRequest(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
+	h.logger.Info("received request", slog.String("path", req.RawPath), slog.String("method", req.RequestContext.HTTP.Method))
 
-	// Attempt to unmarshal into V2
-	var reqV2 events.APIGatewayV2HTTPRequest
-	if err := json.Unmarshal(reqJSON, &reqV2); err == nil && reqV2.RawPath != "" {
-		return h.handleV2(ctx, reqV2)
+	// Content-Type Header
+	headers := map[string]string{
+		"Content-Type": "application/json",
 	}
 
-	// Attempt to unmarshal into V1
-	var reqV1 events.APIGatewayProxyRequest
-	if err := json.Unmarshal(reqJSON, &reqV1); err == nil && reqV1.Path != "" {
-		return h.handleV1(ctx, reqV1)
-	}
-
-	return events.APIGatewayV2HTTPResponse{
-		StatusCode: 500,
-		Body:       fmt.Sprintf("Could not parse event: %s", string(reqJSON)),
-	}, nil
-}
-
-func (h *Handler) handleV2(ctx context.Context, req events.APIGatewayV2HTTPRequest) (events.APIGatewayV2HTTPResponse, error) {
-	// ... existing V2 logic ...
-	h.logger.Info("handling as V2", slog.String("path", req.RawPath))
+	// Strip /api prefix if present (for CloudFront routing)
 	path := req.RawPath
 	if len(path) > 4 && path[:4] == "/api" {
 		path = path[4:]
 	}
+
 	method := req.RequestContext.HTTP.Method
+
+	// Handle OPTIONS for CORS Preflight
+	if method == "OPTIONS" {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 200,
+			Headers:    headers,
+			Body:       "",
+		}, nil
+	}
 
 	switch {
 	case path == "/images" && method == "GET":
-		return h.handleGetImages(ctx, headersV2())
+		return h.handleGetImages(ctx, req, headers)
 	case path == "/upload" && method == "POST":
-		return h.handleUpload(ctx, req, headersV2())
+		return h.handleUpload(ctx, req, headers)
 	case path == "/image-url" && method == "GET":
-		return h.handleGetImageURL(ctx, req, headersV2())
+		return h.handleGetImageURL(ctx, req, headers)
 	default:
 		return events.APIGatewayV2HTTPResponse{
 			StatusCode: 404,
-			Headers:    headersV2(),
+			Headers:    headers,
 			Body:       `{"error":"Not Found"}`,
 		}, nil
 	}
 }
 
-func (h *Handler) handleV1(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayV2HTTPResponse, error) {
-	// Adapter logic for V1 -> V2 response
-	h.logger.Info("handling as V1", slog.String("path", req.Path))
-	// ... logic ...
-	return events.APIGatewayV2HTTPResponse{StatusCode: 501, Body: "V1 not supported yet"}, nil
-}
-
-func headersV2() map[string]string {
-	return map[string]string{"Content-Type": "application/json"}
-}
-
-func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string) (events.APIGatewayV2HTTPResponse, error) {
+func (h *Handler) handleGetImages(ctx context.Context, req events.APIGatewayV2HTTPRequest, headers map[string]string) (events.APIGatewayV2HTTPResponse, error) {
 	input := &dynamodb.ScanInput{
 		TableName: aws.String(h.tableName),
 	}
@@ -153,9 +138,49 @@ func (h *Handler) handleGetImages(ctx context.Context, headers map[string]string
 		}, nil
 	}
 
+	// Sort items by image_key descending (newest first)
+	// image_key format: images/<timestamp>-<name>
+	sort.Slice(items, func(i, j int) bool {
+		keyI, _ := items[i]["image_key"].(string)
+		keyJ, _ := items[j]["image_key"].(string)
+		return keyI > keyJ
+	})
+
+	// Pagination Logic (In-Memory Slice)
+	limit := 10
+	page := 1
+
+	if l := req.QueryStringParameters["limit"]; l != "" {
+		if val, err := strconv.Atoi(l); err == nil && val > 0 {
+			limit = val
+		}
+	}
+	if p := req.QueryStringParameters["page"]; p != "" {
+		if val, err := strconv.Atoi(p); err == nil && val > 0 {
+			page = val
+		}
+	}
+
+	totalItems := len(items)
+	start := (page - 1) * limit
+	end := start + limit
+
+	var pagedItems []map[string]interface{}
+	if start < totalItems {
+		if end > totalItems {
+			end = totalItems
+		}
+		pagedItems = items[start:end]
+	} else {
+		pagedItems = []map[string]interface{}{}
+	}
+
 	responseBody, _ := json.Marshal(map[string]interface{}{
-		"items": items,
-		"count": result.Count,
+		"items":       pagedItems,
+		"total_count": totalItems,
+		"page":        page,
+		"limit":       limit,
+		"has_more":    end < totalItems,
 	})
 
 	return events.APIGatewayV2HTTPResponse{
