@@ -1,0 +1,74 @@
+apiVersion: v1alpha1
+discovery:
+  jobs:
+  - type: lambda
+    regions:
+      - ap-southeast-2
+    metrics:
+      - name: Invocations
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: Errors
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: Duration
+        statistics: [Average, Maximum]
+        period: 300
+        length: 3600
+      - name: Throttles
+        statistics: [Sum]
+        period: 300
+        length: 3600
+
+  - type: s3
+    regions:
+      - ap-southeast-2
+    metrics:
+      - name: BucketSizeBytes
+        statistics: [Average]
+        period: 86400
+        length: 86400
+      - name: NumberOfObjects
+        statistics: [Average]
+        period: 86400
+        length: 86400
+
+  - type: apigateway
+    regions:
+      - ap-southeast-2
+    metrics:
+      - name: Count
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: 5XXError
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: 4XXError
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: Latency
+        statistics: [Average, p95]
+        period: 300
+        length: 3600
+
+  - type: dynamodb
+    regions:
+      - ap-southeast-2
+    metrics:
+      - name: ConsumedReadCapacityUnits
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: ConsumedWriteCapacityUnits
+        statistics: [Sum]
+        period: 300
+        length: 3600
+      - name: ProvisionedReadCapacityUnits
+        statistics: [Average]
+        period: 300
+        length: 3600

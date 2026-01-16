@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # CloudWatch Exporter (YACE)
+  # Scrapes metrics from AWS CloudWatch and exposes them for Prometheus
+  yace:
+    image: ghcr.io/nerdswords/yet-another-cloudwatch-exporter:v0.55.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./yace-config.yml:/tmp/config.yml:ro
+      - ~/.aws/credentials:/exporter/.aws/credentials:ro # Mount local AWS credentials
+    environment:
+      - AWS_PROFILE=default # Change if using a different profile
+    command: >
+      --config.file=/tmp/config.yml
+
+  # Prometheus
+  # Time-series database that pulls metrics from YACE
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - yace
+
+  # Grafana
+  # Visualization dashboard
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Default password
+    depends_on:
+      - prometheus
