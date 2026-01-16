@@ -8,3 +8,31 @@ s3-bucket-policy.json
 # Terraform
 terraform/.terraform/
 terraform/*.backup
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+.terraform.lock.hcl
+
+# Go
+bootstrap
+main
+image-api
+image-processor
+*.zip
+
+# Node
+node_modules/
+npm-debug.log
+.next/
+out/
+build/
+dist/
+
+# Env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
