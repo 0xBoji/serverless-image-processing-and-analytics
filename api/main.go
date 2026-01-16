@@ -22,6 +22,7 @@ import (
 // Request/Response types
 type UploadRequest struct {
 	ContentType string `json:"contentType"`
+	Size        int64  `json:"size"`
 }
 
 type UploadResponse struct {
@@ -231,6 +232,16 @@ func (h *Handler) handleUpload(ctx context.Context, req events.APIGatewayV2HTTPR
 			StatusCode: 400,
 			Headers:    headers,
 			Body:       `{"error":"Only JPEG and PNG images are allowed"}`,
+		}, nil
+	}
+
+	// Validate file size (Max 5MB)
+	const MaxFileSize = 5 * 1024 * 1024 // 5MB
+	if uploadReq.Size > MaxFileSize {
+		return events.APIGatewayV2HTTPResponse{
+			StatusCode: 400,
+			Headers:    headers,
+			Body:       `{"error":"File size exceeds 5MB limit"}`,
 		}, nil
 	}
 

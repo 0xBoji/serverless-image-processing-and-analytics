@@ -20,6 +20,19 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
             setStatus('uploading');
             setStatusMessage('Getting upload URL...');
 
+            // Validate size locally first
+            const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+            if (file.size > MAX_SIZE) {
+                setStatus('error');
+                setStatusMessage('File size exceeds 5MB limit');
+                setTimeout(() => {
+                    setStatus('idle');
+                    setStatusMessage(undefined);
+                    clearPreview();
+                }, 3000);
+                return;
+            }
+
             // Get presigned URL from our API
             const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
             const response = await fetch(`${API_BASE}/upload`, {
@@ -27,7 +40,8 @@ export function UploadZone({ onUploadComplete }: UploadZoneProps) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     fileName: file.name,
-                    contentType: file.type
+                    contentType: file.type,
+                    size: file.size
                 }),
             });
 
