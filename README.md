@@ -63,6 +63,11 @@ graph LR
 -   **📜 Pagination**: Infinite scroll support with optimized DynamoDB scanning.
 -   **🎨 UI/UX**: "Sci-Fi" scanning animation and glassmorphism design.
 
+## Monitoring & Observability
+
+![Grafana Loki Logging](screenshot/grafana-loki-logging.png)
+*Real-time Logs & Metrics via Grafana + Loki + Prometheus*
+
 ## Project Structure
 
 ```bash
