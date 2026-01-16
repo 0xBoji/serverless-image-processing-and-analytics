@@ -27,6 +27,13 @@ graph LR
         LambdaProc -->|Metadata| DDB
     end
 
+    subgraph "Observability"
+        CW["CloudWatch"]
+    end
+
+    LambdaAPI -.->|Logs/Metrics| CW
+    LambdaProc -.->|Logs/Metrics| CW
+
     %% Recursion Protection
     LambdaProc -.->|Guard Clause| LambdaProc
 ```
