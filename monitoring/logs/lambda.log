@@ -1,0 +1,71 @@
+2026-01-16T08:03:38 INIT_START Runtime Version: provided:al2023.v117	Runtime Version ARN: arn:aws:lambda:ap-southeast-2::runtime:c6399f4c0e3d2282175adf9f479c8de0aef35c584aa5d52a8add2febc9aabd34
+2026-01-16T08:03:38 START RequestId: 395958b9-3939-4e4b-993c-3953b84b5097 Version: $LATEST
+2026-01-16T08:03:38 {"time":"2026-01-16T08:03:38.353097563Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:03:39 END RequestId: 395958b9-3939-4e4b-993c-3953b84b5097
+2026-01-16T08:03:39 REPORT RequestId: 395958b9-3939-4e4b-993c-3953b84b5097	Duration: 1294.91 ms	Billed Duration: 1368 ms	Memory Size: 128 MB	Max Memory Used: 30 MB	Init Duration: 73.02 ms
+2026-01-16T08:03:45 START RequestId: 533e2735-b438-4919-8a05-6c16435dbbe9 Version: $LATEST
+2026-01-16T08:03:45 {"time":"2026-01-16T08:03:45.287416609Z","level":"INFO","msg":"received request","path":"/api/upload","method":"OPTIONS"}
+2026-01-16T08:03:45 END RequestId: 533e2735-b438-4919-8a05-6c16435dbbe9
+2026-01-16T08:03:45 REPORT RequestId: 533e2735-b438-4919-8a05-6c16435dbbe9	Duration: 1.36 ms	Billed Duration: 2 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:03:45 START RequestId: 487b0ef6-77c2-4210-8364-8b6ae1b387a0 Version: $LATEST
+2026-01-16T08:03:45 {"time":"2026-01-16T08:03:45.972412218Z","level":"INFO","msg":"received request","path":"/api/upload","method":"POST"}
+2026-01-16T08:03:45 END RequestId: 487b0ef6-77c2-4210-8364-8b6ae1b387a0
+2026-01-16T08:03:45 REPORT RequestId: 487b0ef6-77c2-4210-8364-8b6ae1b387a0	Duration: 1.65 ms	Billed Duration: 2 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:03:50 START RequestId: d59cd4cb-9cd6-4ffd-b7de-a4d8f9c1172f Version: $LATEST
+2026-01-16T08:03:50 {"time":"2026-01-16T08:03:50.149790009Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:03:50 END RequestId: d59cd4cb-9cd6-4ffd-b7de-a4d8f9c1172f
+2026-01-16T08:03:50 REPORT RequestId: d59cd4cb-9cd6-4ffd-b7de-a4d8f9c1172f	Duration: 18.08 ms	Billed Duration: 19 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:03:52 START RequestId: db8835e1-d46a-4eee-b395-d269ce31a495 Version: $LATEST
+2026-01-16T08:03:52 {"time":"2026-01-16T08:03:52.420103171Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:03:52 END RequestId: db8835e1-d46a-4eee-b395-d269ce31a495
+2026-01-16T08:03:52 REPORT RequestId: db8835e1-d46a-4eee-b395-d269ce31a495	Duration: 27.39 ms	Billed Duration: 28 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:03:54 START RequestId: 56b69eff-0029-4f37-9aad-7c594cc0642c Version: $LATEST
+2026-01-16T08:03:54 {"time":"2026-01-16T08:03:54.660476331Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:03:54 END RequestId: 56b69eff-0029-4f37-9aad-7c594cc0642c
+2026-01-16T08:03:54 REPORT RequestId: 56b69eff-0029-4f37-9aad-7c594cc0642c	Duration: 8.46 ms	Billed Duration: 9 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:03:56 START RequestId: d92f0d88-eb37-41ed-89c5-f8676088e9f2 Version: $LATEST
+2026-01-16T08:03:56 {"time":"2026-01-16T08:03:56.883712134Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:03:56 END RequestId: d92f0d88-eb37-41ed-89c5-f8676088e9f2
+2026-01-16T08:03:56 REPORT RequestId: d92f0d88-eb37-41ed-89c5-f8676088e9f2	Duration: 8.87 ms	Billed Duration: 9 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:03:59 START RequestId: 774c2ea4-140a-428b-8c54-3e5514e0b71b Version: $LATEST
+2026-01-16T08:03:59 {"time":"2026-01-16T08:03:59.110166326Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:03:59 END RequestId: 774c2ea4-140a-428b-8c54-3e5514e0b71b
+2026-01-16T08:03:59 REPORT RequestId: 774c2ea4-140a-428b-8c54-3e5514e0b71b	Duration: 18.39 ms	Billed Duration: 19 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:04:01 START RequestId: 7536f4ac-a5a4-4460-b127-43f49672a7c5 Version: $LATEST
+2026-01-16T08:04:01 {"time":"2026-01-16T08:04:01.728636665Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:04:01 END RequestId: 7536f4ac-a5a4-4460-b127-43f49672a7c5
+2026-01-16T08:04:01 REPORT RequestId: 7536f4ac-a5a4-4460-b127-43f49672a7c5	Duration: 19.28 ms	Billed Duration: 20 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:04:03 START RequestId: 215e6b73-4b0d-4a5e-a577-c7bfbacebb60 Version: $LATEST
+2026-01-16T08:04:03 {"time":"2026-01-16T08:04:03.959476399Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:04:04 END RequestId: 215e6b73-4b0d-4a5e-a577-c7bfbacebb60
+2026-01-16T08:04:04 REPORT RequestId: 215e6b73-4b0d-4a5e-a577-c7bfbacebb60	Duration: 49.22 ms	Billed Duration: 50 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:04:06 START RequestId: 4a7a58af-c883-45c6-88cc-e652006b633e Version: $LATEST
+2026-01-16T08:04:06 {"time":"2026-01-16T08:04:06.548726372Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:04:06 END RequestId: 4a7a58af-c883-45c6-88cc-e652006b633e
+2026-01-16T08:04:06 REPORT RequestId: 4a7a58af-c883-45c6-88cc-e652006b633e	Duration: 19.02 ms	Billed Duration: 20 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:04:08 START RequestId: 7fd70c5e-42a6-482b-9772-7af8945337c8 Version: $LATEST
+2026-01-16T08:04:08 {"time":"2026-01-16T08:04:08.759808453Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:04:08 END RequestId: 7fd70c5e-42a6-482b-9772-7af8945337c8
+2026-01-16T08:04:08 REPORT RequestId: 7fd70c5e-42a6-482b-9772-7af8945337c8	Duration: 8.94 ms	Billed Duration: 9 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:04:10 START RequestId: 018e140c-86d8-4207-956c-3099438e576b Version: $LATEST
+2026-01-16T08:04:10 {"time":"2026-01-16T08:04:10.984187592Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:04:10 END RequestId: 018e140c-86d8-4207-956c-3099438e576b
+2026-01-16T08:04:10 REPORT RequestId: 018e140c-86d8-4207-956c-3099438e576b	Duration: 9.38 ms	Billed Duration: 10 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:04:14 START RequestId: b860207d-c5c0-4af1-9576-b831d3893863 Version: $LATEST
+2026-01-16T08:04:14 {"time":"2026-01-16T08:04:14.570147677Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:04:14 END RequestId: b860207d-c5c0-4af1-9576-b831d3893863
+2026-01-16T08:04:14 REPORT RequestId: b860207d-c5c0-4af1-9576-b831d3893863	Duration: 17.86 ms	Billed Duration: 18 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:05:10 START RequestId: 8a6a1c3e-67b9-493c-830f-61127ffac88c Version: $LATEST
+2026-01-16T08:05:10 {"time":"2026-01-16T08:05:10.767083573Z","level":"INFO","msg":"received request","path":"/api/upload","method":"POST"}
+2026-01-16T08:05:10 END RequestId: 8a6a1c3e-67b9-493c-830f-61127ffac88c
+2026-01-16T08:05:10 REPORT RequestId: 8a6a1c3e-67b9-493c-830f-61127ffac88c	Duration: 5.23 ms	Billed Duration: 6 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:05:30 START RequestId: 43f77fe3-a279-47a0-924d-27129083660c Version: $LATEST
+2026-01-16T08:05:30 {"time":"2026-01-16T08:05:30.144033132Z","level":"INFO","msg":"received request","path":"/api/upload","method":"POST"}
+2026-01-16T08:05:30 END RequestId: 43f77fe3-a279-47a0-924d-27129083660c
+2026-01-16T08:05:30 REPORT RequestId: 43f77fe3-a279-47a0-924d-27129083660c	Duration: 1.44 ms	Billed Duration: 2 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:05:35 START RequestId: 662c0c00-f277-4345-8e06-981391ee7530 Version: $LATEST
+2026-01-16T08:05:35 {"time":"2026-01-16T08:05:35.312617477Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
+2026-01-16T08:05:35 END RequestId: 662c0c00-f277-4345-8e06-981391ee7530
+2026-01-16T08:05:35 REPORT RequestId: 662c0c00-f277-4345-8e06-981391ee7530	Duration: 35.48 ms	Billed Duration: 36 ms	Memory Size: 128 MB	Max Memory Used: 30 MB
+2026-01-16T08:05:37 START RequestId: 9e451e4a-c975-4198-8029-a93ca028381d Version: $LATEST
+2026-01-16T08:05:37 {"time":"2026-01-16T08:05:37.781130138Z","level":"INFO","msg":"received request","path":"/api/images","method":"GET"}
