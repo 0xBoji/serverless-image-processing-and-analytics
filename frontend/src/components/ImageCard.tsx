@@ -15,6 +15,7 @@ export interface ProcessedImage {
     processed_at: string;
     detected_labels: ImageLabel[];
     thumbnail_key?: string;
+    url?: string;
 }
 
 interface ImageCardProps {
@@ -40,11 +41,15 @@ function formatDate(dateString: string): string {
 }
 
 export function ImageCard({ image }: ImageCardProps) {
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    // If backend provides URL, use it directly
+    const [imageUrl, setImageUrl] = useState<string | null>((image as any).url || null);
+    const [loading, setLoading] = useState(!(image as any).url);
     const [error, setError] = useState(false);
 
     useEffect(() => {
+        // Only fetch if we don't have a URL yet
+        if (imageUrl) return;
+
         const fetchImageUrl = async () => {
             try {
                 // Prefer thumbnail if available, otherwise use original image
@@ -65,7 +70,7 @@ export function ImageCard({ image }: ImageCardProps) {
         };
 
         fetchImageUrl();
-    }, [image.image_key, image.thumbnail_key]);
+    }, [image.image_key, image.thumbnail_key, imageUrl]);
 
     return (
         <div className="glass-card group overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-lg cursor-pointer">

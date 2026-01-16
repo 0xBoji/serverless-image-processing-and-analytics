@@ -175,6 +175,31 @@ func (h *Handler) handleGetImages(ctx context.Context, req events.APIGatewayV2HT
 		pagedItems = []map[string]interface{}{}
 	}
 
+	// Sign URLs for paged items
+	presignClient := s3.NewPresignClient(h.s3Client)
+	for i := range pagedItems {
+		// Determine which key to sign (thumbnail if available, else original)
+		key := ""
+		if k, ok := pagedItems[i]["thumbnail_key"].(string); ok && k != "" {
+			key = k
+		} else if k, ok := pagedItems[i]["image_key"].(string); ok && k != "" {
+			key = k
+		}
+
+		if key != "" {
+			presignedReq, err := presignClient.PresignGetObject(ctx, &s3.GetObjectInput{
+				Bucket: aws.String(h.bucketName),
+				Key:    aws.String(key),
+			}, s3.WithPresignExpires(time.Hour))
+
+			if err == nil {
+				pagedItems[i]["url"] = presignedReq.URL
+			} else {
+				h.logger.Error("failed to presign url for item", slog.String("key", key), slog.String("error", err.Error()))
+			}
+		}
+	}
+
 	responseBody, _ := json.Marshal(map[string]interface{}{
 		"items":       pagedItems,
 		"total_count": totalItems,
