@@ -1,54 +1,85 @@
 # 📊 Serverless Monitoring Stack
 
-Monitor your serverless application using **Grafana** and **Prometheus**, populated with data from **AWS CloudWatch** via **YACE** (Yet Another CloudWatch Exporter).
+A complete observability stack for local development, combining Metrics (Prometheus) and Logs (Loki) in one Grafana Dashboard.
 
 ## Architecture
 
-`AWS CloudWatch` -> `YACE Exporter` -> `Prometheus` -> `Grafana`
+```mermaid
+graph LR
+    subgraph "AWS Cloud"
+        CW[CloudWatch]
+    end
 
-*   **YACE**: Scrapes metrics from CloudWatch API (Lambda, DynamoDB, API Gateway, S3).
-*   **Prometheus**: Collects and stores metrics.
-*   **Grafana**: Visualizes metrics with beautiful dashboards.
+    subgraph "Local Machine"
+        script[tail-logs.sh] -->|tails| CW
+        script -->|writes| LogFile[logs/lambda.log]
+        
+        YACE[YACE Exporter] -->|pulls metrics| CW
+        
+        Promtail -->|reads| LogFile
+        Promtail -->|pushes| Loki
+        
+        Prometheus -->|scrapes| YACE
+        
+        Grafana -->|queries| Prometheus
+        Grafana -->|queries| Loki
+    end
+```
+
+## Stack Components
+
+| Service | Port | Description |
+|---------|------|-------------|
+| **Grafana** | `3000` | Visualization Dashboard (User: `admin`/`admin`) |
+| **Prometheus** | `9090` | Timeseries Database (Metrics) |
+| **Loki** | `3100` | Log Aggregation System (Logs) |
+| **YACE** | `5001` | CloudWatch Metrics Exporter |
+| **Promtail** | N/A | Log Shipper (sends logs to Loki) |
 
 ## Prerequisites
 
 *   Docker & Docker Compose installed.
-*   AWS Credentials configured locally (`~/.aws/credentials`).
+*   AWS CLI v2 installed and configured (`aws configure`).
+*   Verify credentials in `~/.aws/credentials`.
 
 ## Setup & Run
 
-1.  **Configure AWS Credentials**:
-    Ensure you have valid credentials in `~/.aws/credentials`. The `docker-compose.yml` mounts this file into the exporter container.
+### 1. Start the Backend Stack
+Run the Docker containers (Grafana, Prometheus, Loki, etc.):
 
-2.  **Start the Stack**:
-    ```bash
-    cd monitoring
-    docker-compose up -d
-    ```
+```bash
+cd monitoring
+docker-compose up -d
+```
 
-3.  **Access Dashboards**:
-    *   **Grafana**: [http://localhost:3000](http://localhost:3000) (User: `admin`, Pass: `admin`)
-    *   **Prometheus**: [http://localhost:9090](http://localhost:9090)
-    *   **YACE Metrics**: [http://localhost:5000/metrics](http://localhost:5000/metrics)
+### 2. Start Log Shipping (Important!)
+To see real-time logs from AWS, you must run the tailing script in a **separate terminal**. This script pulls logs from CloudWatch and writes them to a file that Promtail watches.
 
-## Grafana Configuration
+```bash
+# In project root
+./tail-logs.sh
+```
+*Keep this terminal open while you develop.*
 
-1.  **Add Data Source**:
-    *   Go to **Configuration** -> **Data Sources**.
-    *   Add **Prometheus**.
+### 3. Configure Grafana (First Time Only)
+
+1.  **Login**: [http://localhost:3000](http://localhost:3000) (admin/admin).
+2.  **Add Prometheus Data Source**:
     *   URL: `http://prometheus:9090`
     *   Click **Save & Test**.
+3.  **Add Loki Data Source**:
+    *   URL: `http://loki:3100`
+    *   Click **Save & Test**.
 
-2.  **Import Dashboard**:
-    *   Go to **Dashboards** -> **New** -> **Import**.
-    *   You can create panels querying metrics like:
-        *   `aws_lambda_invocations_sum`
-        *   `aws_lambda_errors_sum`
-        *   `aws_s3_bucket_size_bytes_average`
+## Usage
+
+*   **View Metrics**: Create a dashboard and query Prometheus (e.g., `yace_cloudwatch_invocations_sum`).
+*   **View Logs**: Go to **Explore** -> Select **Loki** -> Query `{job="lambda"}`.
 
 ## Cleanup
 
-To stop and remove containers:
+To stop all containers:
 ```bash
+cd monitoring
 docker-compose down
 ```
