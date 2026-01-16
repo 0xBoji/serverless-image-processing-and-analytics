@@ -160,8 +160,8 @@ resource "aws_apigatewayv2_stage" "default" {
   auto_deploy = true
 
   default_route_settings {
-    throttling_burst_limit = 20
-    throttling_rate_limit  = 10
+    throttling_burst_limit = 100
+    throttling_rate_limit  = 50
   }
 }
 
@@ -206,6 +206,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   lambda_function {
     lambda_function_arn = aws_lambda_function.image_processor.arn
     events              = ["s3:ObjectCreated:*"]
+    filter_prefix       = "images/"
   }
 
   depends_on = [aws_lambda_permission.allow_bucket]

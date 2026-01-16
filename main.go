@@ -99,6 +99,16 @@ func (h *Handler) processS3Record(ctx context.Context, record events.S3EventReco
 	key := record.S3.Object.Key
 	size := record.S3.Object.Size
 
+	// Guard: Only process files in the "images/" directory to prevent recursion
+	// This prevents the Lambda from triggering on its own output (thumbnails/)
+	if len(key) < 7 || key[:7] != "images/" {
+		h.logger.Info("skipping non-image object",
+			slog.String("key", key),
+			slog.String("reason", "not in images/ prefix"),
+		)
+		return nil
+	}
+
 	h.logger.Info("processing image",
 		slog.String("bucket", bucket),
 		slog.String("key", key),
